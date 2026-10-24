@@ -1,0 +1,73 @@
+{
+  "name": "flow-gates",
+  "displayName": "Flow Gates",
+  "description": "Code/Map mode switching and project setup for Flow Gates.",
+  "version": "0.0.1",
+  "publisher": "flowgates",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "main": "./out/extension",
+  "categories": [
+    "Other"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:flowgates.setMode",
+    "onCommand:flowgates.getMode",
+    "onCommand:flowgates.setupProject",
+    "onCommand:flowgates.editProjectSettings",
+    "onCommand:flowgates.runAiFeature",
+    "onCommand:flowgates.convertCode",
+    "onCommand:flowgates.editMap",
+    "onCommand:flowgates.saveMap"
+  ],
+  "capabilities": {
+    "virtualWorkspaces": false,
+    "untrustedWorkspaces": {
+      "supported": false
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "flowgates.setupProject",
+        "title": "Set Up Project",
+        "category": "Flow Gates"
+      },
+      {
+        "command": "flowgates.editProjectSettings",
+        "title": "Edit Project Settings",
+        "category": "Flow Gates"
+      },
+      {
+        "command": "flowgates.runAiFeature",
+        "title": "Run AI Feature",
+        "category": "Flow Gates"
+      },
+      {
+        "command": "flowgates.convertCode",
+        "title": "Convert Code",
+        "category": "Flow Gates"
+      },
+      {
+        "command": "flowgates.editMap",
+        "title": "Edit Map",
+        "category": "Flow Gates"
+      },
+      {
+        "command": "flowgates.saveMap",
+        "title": "Save Map File",
+        "category": "Flow Gates"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "node ../../node_modules/gulp/bin/gulp.js --gulpfile ../../build/gulpfile.extensions.ts compile-extension:flow-gates ./tsconfig.json",
+    "watch": "node ../../node_modules/gulp/bin/gulp.js --gulpfile ../../build/gulpfile.extensions.ts watch-extension:flow-gates ./tsconfig.json"
+  }
+}

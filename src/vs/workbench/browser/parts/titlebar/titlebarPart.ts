@@ -12,7 +12,7 @@ import { MenuBarVisibility, getTitleBarStyle, getMenuBarVisibility, hasCustomTit
 import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
 import { StandardMouseEvent } from '../../../../base/browser/mouseEvent.js';
 import { IConfigurationService, IConfigurationChangeEvent } from '../../../../platform/configuration/common/configuration.js';
-import { DisposableStore, IDisposable, MutableDisposable } from '../../../../base/common/lifecycle.js';
+import { Disposable, DisposableStore, IDisposable, MutableDisposable } from '../../../../base/common/lifecycle.js';
 import { IBrowserWorkbenchEnvironmentService } from '../../../services/environment/browser/environmentService.js';
 import { IColorTheme, IThemeService } from '../../../../platform/theme/common/themeService.js';
 import { MODERN_UI_INACTIVE_SHELL_BACKGROUND, MODERN_UI_SHELL_BACKGROUND, TITLE_BAR_ACTIVE_BACKGROUND, TITLE_BAR_ACTIVE_FOREGROUND, TITLE_BAR_INACTIVE_FOREGROUND, TITLE_BAR_INACTIVE_BACKGROUND, TITLE_BAR_BORDER, WORKBENCH_BACKGROUND } from '../../../common/theme.js';
@@ -45,6 +45,7 @@ import { AnchorAlignment } from '../../../../base/browser/ui/contextview/context
 import { EditorPane } from '../editor/editorPane.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { ResolvedKeybinding } from '../../../../base/common/keybindings.js';
+import { KeyCode } from '../../../../base/common/keyCodes.js';
 import { EditorCommandsContextActionRunner } from '../editor/editorTabsControl.js';
 import { IEditorCommandsContext, IEditorPartOptionsChangeEvent, IToolbarActions } from '../../../common/editor.js';
 import { CodeWindow, mainWindow } from '../../../../base/browser/window.js';
@@ -53,7 +54,7 @@ import { IView } from '../../../../base/browser/ui/grid/grid.js';
 import { createInstantHoverDelegate } from '../../../../base/browser/ui/hover/hoverDelegateFactory.js';
 import { IBaseActionViewItemOptions } from '../../../../base/browser/ui/actionbar/actionViewItems.js';
 import { IHoverDelegate } from '../../../../base/browser/ui/hover/hoverDelegate.js';
-import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
+import { CommandsRegistry, ICommandService } from '../../../../platform/commands/common/commands.js';
 import { safeIntl } from '../../../../base/common/date.js';
 import { IsCompactTitleBarContext, TitleBarVisibleContext } from '../../../common/contextkeys.js';
 import { ServiceCollection } from '../../../../platform/instantiation/common/serviceCollection.js';
@@ -282,6 +283,8 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 	private updateToolBarElement: HTMLElement | undefined;
 	private titleBarToolBarOverflowScheduler!: AnimationFrameScheduler;
 
+	private codeMapToggle: CodeMapToggleControl | undefined;
+
 	private globalToolbarMenu: IMenu | undefined;
 	private layoutToolbarMenu: IMenu | undefined;
 
@@ -321,7 +324,8 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 		@IEditorService editorService: IEditorService,
 		@IMenuService private readonly menuService: IMenuService,
 		@IKeybindingService private readonly keybindingService: IKeybindingService,
-		@IActionViewItemService private readonly actionViewItemService: IActionViewItemService
+		@IActionViewItemService private readonly actionViewItemService: IActionViewItemService,
+		@ICommandService private readonly commandService: ICommandService
 	) {
 		super(id, { hasTitle: false }, themeService, storageService, layoutService);
 
@@ -533,6 +537,7 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 
 		// Create Toolbar Actions
 		if (hasCustomTitlebar(this.configurationService, this.titleBarStyle)) {
+			this.codeMapToggle = this._register(new CodeMapToggleControl(this.rightContent, this.commandService));
 			this.actionToolBarElement = append(this.rightContent, $('div.action-toolbar-container'));
 			this.createActionToolBar();
 			this.createActionToolBarMenus();
@@ -1002,6 +1007,104 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 		this._onWillDispose.fire();
 
 		super.dispose();
+	}
+}
+
+/**
+ * Segmented `Code | Map` switch shown in the title bar, left of the layout controls.
+ * It owns no state: the active mode lives in the `flow-gates` extension, which is
+ * reached through the `flowgates.setMode` / `flowgates.getMode` commands.
+ */
+class CodeMapToggleControl extends Disposable {
+
+	private static readonly MODES = ['code', 'map'] as const;
+
+	private readonly _domNode: HTMLElement;
+	private readonly _segments: HTMLButtonElement[] = [];
+	private _activeIndex = 0;
+
+	constructor(
+		container: HTMLElement,
+		private readonly commandService: ICommandService
+	) {
+		super();
+
+		this._domNode = append(container, $('div.code-map-toggle'));
+		this._domNode.setAttribute('role', 'radiogroup');
+		this._domNode.setAttribute('aria-label', localize('codeMapToggle.label', "Editor Mode"));
+
+		for (let index = 0; index < CodeMapToggleControl.MODES.length; index++) {
+			const mode = CodeMapToggleControl.MODES[index];
+			const label = mode === 'code' ? localize('codeMapToggle.code', "Code") : localize('codeMapToggle.map', "Map");
+			const segment = append(this._domNode, $('button.code-map-toggle-segment')) as HTMLButtonElement;
+			segment.type = 'button';
+			segment.textContent = label;
+			segment.setAttribute('role', 'radio');
+			segment.tabIndex = index === 0 ? 0 : -1;
+
+			this._segments.push(segment);
+			this._register(addDisposableListener(segment, EventType.CLICK, () => this.select(index, true)));
+			this._register(addDisposableListener(segment, EventType.KEY_DOWN, e => this.onSegmentKeyDown(e, index)));
+		}
+
+		this.updateSegments();
+
+		// The extension is the source of truth; fall back to Code when it is not available yet.
+		this.queryMode();
+	}
+
+	private async queryMode(): Promise<void> {
+		try {
+			const mode = await this.commandService.executeCommand<string | undefined>('flowgates.getMode');
+			const index = CodeMapToggleControl.MODES.indexOf(mode as typeof CodeMapToggleControl.MODES[number]);
+			if (index !== -1) {
+				this.select(index, false);
+			}
+		} catch {
+			// Extension not activated or command missing: keep the Code default.
+		}
+	}
+
+	private onSegmentKeyDown(e: KeyboardEvent, index: number): void {
+		let nextIndex: number | undefined;
+		if (e.keyCode === KeyCode.LeftArrow) {
+			nextIndex = (index - 1 + this._segments.length) % this._segments.length;
+		} else if (e.keyCode === KeyCode.RightArrow) {
+			nextIndex = (index + 1) % this._segments.length;
+		}
+
+		if (nextIndex === undefined) {
+			return;
+		}
+
+		EventHelper.stop(e, true);
+		this.select(nextIndex, true);
+		this._segments[nextIndex].focus();
+	}
+
+	private select(index: number, notifyExtension: boolean): void {
+		if (index === this._activeIndex && notifyExtension === false) {
+			return;
+		}
+
+		this._activeIndex = index;
+		this.updateSegments();
+
+		if (notifyExtension) {
+			this.commandService.executeCommand('flowgates.setMode', CodeMapToggleControl.MODES[index]).catch(() => {
+				// The extension is not available; the visual state still reflects the user's choice.
+			});
+		}
+	}
+
+	private updateSegments(): void {
+		for (let index = 0; index < this._segments.length; index++) {
+			const isActive = index === this._activeIndex;
+			const segment = this._segments[index];
+			segment.classList.toggle('active', isActive);
+			segment.setAttribute('aria-checked', String(isActive));
+			segment.tabIndex = isActive ? 0 : -1;
+		}
 	}
 }
 

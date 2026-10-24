@@ -727,8 +727,11 @@ async function watch(): Promise<void> {
 
 	const outDir = OUT_DIR;
 
-	// Initial setup
-	await cleanDir(outDir);
+	// Initial setup. Do NOT clean the output directory here: wiping `out` while a
+	// previously launched instance is still starting up makes it fail with
+	// ERR_MODULE_NOT_FOUND for modules that have not been re-emitted yet.
+	// Stale files are harmless in a dev build, so just make sure the dir exists.
+	await fs.promises.mkdir(path.join(REPO_ROOT, outDir), { recursive: true });
 	console.log(`[transpile] ${SRC_DIR} → ${outDir}`);
 
 	// Initial full build
