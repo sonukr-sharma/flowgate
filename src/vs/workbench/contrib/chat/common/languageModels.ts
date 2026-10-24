@@ -57,8 +57,7 @@ export function isLanguageModelVendorAbsenceConclusive(vendor: string, hasLiveMo
 
 /**
  * Vendor ids of the BYOK language-model providers that ship in-built with the GitHub Copilot Chat
- * extension. Each provider's vendor id is `providerName.toLowerCase()` (see
- * `extensions/copilot/src/extension/byok/vscode-node/*Provider.ts`). This list is intentionally
+ * extension. Each provider's vendor id is `providerName.toLowerCase()`. This list is intentionally
  * hardcoded: the in-built provider set is stable and known ahead of time, which lets us report these
  * providers by name while bucketing every other (third-party) provider as `3p-extension`.
  */
@@ -469,7 +468,7 @@ export namespace ILanguageModelChatMetadata {
 
 	/**
 	 * Documentation link explaining how Auto model selection works.
-	 * NOTE: Also defined in extensions/copilot/src/extension/conversation/common/languageModelAccess.ts — keep in sync.
+	 * NOTE: Also defined in the chat extension's `languageModelAccess.ts` - keep in sync.
 	 */
 	export const autoModelSelectionDocsUrl = 'https://docs.github.com/en/copilot/concepts/models/auto-model-selection';
 

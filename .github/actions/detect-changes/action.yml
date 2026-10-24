@@ -13,9 +13,6 @@ outputs:
   copilot-shim:
     description: "'true' when the Copilot shim checks in copilot_shim/ need to run."
     value: ${{ steps.detect.outputs.copilot-shim }}
-  copilot:
-    description: "'true' when the Copilot extension checks in extensions/copilot/ need to run."
-    value: ${{ steps.detect.outputs.copilot }}
   unit-tests:
     description: "'true' when the Electron, node.js and browser unit tests need to run."
     value: ${{ steps.detect.outputs.unit-tests }}

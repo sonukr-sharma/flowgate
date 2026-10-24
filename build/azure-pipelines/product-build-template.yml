@@ -100,17 +100,6 @@ stages:
         jobs:
           - template: product-quality-checks.yml@self
 
-      - stage: Copilot
-        dependsOn: []
-        pool:
-          name: 1es-ubuntu-22.04-x64
-          os: linux
-        jobs:
-          - template: product-copilot.yml@self
-            parameters:
-              VSCODE_PUBLISH: ${{ parameters.VSCODE_PUBLISH }}
-              VSCODE_RELEASE: ${{ parameters.VSCODE_RELEASE }}
-
       - ${{ if eq(variables['VSCODE_BUILD_STAGE_WINDOWS'], true) }}:
         - stage: Windows
           displayName: Windows X64
@@ -140,11 +129,10 @@ stages:
                   VSCODE_CIBUILD: ${{ variables.VSCODE_CIBUILD }}
                   VSCODE_QUALITY: ${{ variables.VSCODE_QUALITY }}
                   VSCODE_JOB_NAME: Unit
-                  VSCODE_JOB_DISPLAY_NAME: Unit Tests (Node.js, Browser & Copilot)
+                  VSCODE_JOB_DISPLAY_NAME: Unit Tests (Node.js & Browser)
                   VSCODE_TEST_IDS:
                     - unit-node
                     - unit-browser-chromium
-                    - copilot
               - template: win32/product-build-win32-ci.yml@self
                 parameters:
                   VSCODE_CIBUILD: ${{ variables.VSCODE_CIBUILD }}
@@ -203,11 +191,10 @@ stages:
                     VSCODE_ARCH: x64
                     VSCODE_CIBUILD: ${{ variables.VSCODE_CIBUILD }}
                     VSCODE_JOB_NAME: Unit
-                    VSCODE_JOB_DISPLAY_NAME: Unit Tests (Node.js, Browser & Copilot)
+                    VSCODE_JOB_DISPLAY_NAME: Unit Tests (Node.js & Browser)
                     VSCODE_TEST_IDS:
                       - unit-node
                       - unit-browser-chromium
-                      - copilot
                 - template: win32/product-build-win32-test.yml@self
                   parameters:
                     VSCODE_ARCH: x64
@@ -298,11 +285,10 @@ stages:
                   NPM_ARCH: x64
                   VSCODE_ARCH: x64
                   VSCODE_JOB_NAME: Unit
-                  VSCODE_JOB_DISPLAY_NAME: Unit Tests (Node.js, Browser & Copilot)
+                  VSCODE_JOB_DISPLAY_NAME: Unit Tests (Node.js & Browser)
                   VSCODE_TEST_IDS:
                     - unit-node
                     - unit-browser-chromium
-                    - copilot
               - template: linux/product-build-linux-test.yml@self
                 parameters:
                   NPM_ARCH: x64
@@ -406,11 +392,10 @@ stages:
                   VSCODE_CIBUILD: ${{ variables.VSCODE_CIBUILD }}
                   VSCODE_QUALITY: ${{ variables.VSCODE_QUALITY }}
                   VSCODE_JOB_NAME: Unit
-                  VSCODE_JOB_DISPLAY_NAME: Unit Tests (Node.js, Browser & Copilot)
+                  VSCODE_JOB_DISPLAY_NAME: Unit Tests (Node.js & Browser)
                   VSCODE_TEST_IDS:
                     - unit-node
                     - unit-browser-chromium
-                    - copilot
               - template: linux/product-build-linux-ci.yml@self
                 parameters:
                   VSCODE_CIBUILD: ${{ variables.VSCODE_CIBUILD }}
@@ -498,11 +483,10 @@ stages:
               parameters:
                 VSCODE_CIBUILD: ${{ variables.VSCODE_CIBUILD }}
                 VSCODE_JOB_NAME: Unit
-                VSCODE_JOB_DISPLAY_NAME: Unit Tests (Node.js, Browser & Copilot)
+                VSCODE_JOB_DISPLAY_NAME: Unit Tests (Node.js & Browser)
                 VSCODE_TEST_IDS:
                   - unit-node
                   - unit-browser-webkit
-                  - copilot
             - template: darwin/product-build-darwin-ci.yml@self
               parameters:
                 VSCODE_CIBUILD: ${{ variables.VSCODE_CIBUILD }}
@@ -597,11 +581,10 @@ stages:
                   VSCODE_ARCH: arm64
                   VSCODE_CIBUILD: ${{ variables.VSCODE_CIBUILD }}
                   VSCODE_JOB_NAME: Unit
-                  VSCODE_JOB_DISPLAY_NAME: Unit Tests (Node.js, Browser & Copilot)
+                  VSCODE_JOB_DISPLAY_NAME: Unit Tests (Node.js & Browser)
                   VSCODE_TEST_IDS:
                     - unit-node
                     - unit-browser-webkit
-                    - copilot
               - template: darwin/product-build-darwin-test.yml@self
                 parameters:
                   VSCODE_ARCH: arm64

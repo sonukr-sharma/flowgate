@@ -372,9 +372,9 @@ export const AgentHostCodexAgentBinaryArgsEnvVar = 'VSCODE_AGENT_HOST_CODEX_APP_
 // -- OpenTelemetry settings ------------------------------------------------------
 //
 // The `chat.agentHost.otel.*` namespace surfaces the same exporter knobs the CLI
-// runtime documents in `extensions/copilot/docs/monitoring/agent_monitoring.md`,
-// but routes them through the agent host process so the user's settings stay in
-// VS Code instead of leaking via shell env.
+// runtime documents in its agent monitoring guide, but routes them through the
+// agent host process so the user's settings stay in VS Code instead of leaking
+// via shell env.
 //
 // `chat.agentHost.otel.dbSpanExporter.enabled` switches on the in-process
 // loopback receiver + persistent SQLite span store; the other settings still
@@ -420,9 +420,9 @@ export const AgentHostOTelSpansDbSubPath = 'agent-host/otel/agent-host-traces.db
  * `chat.agentHost.otel.*` settings into these variables (settings → env), while
  * any value already present on the parent process's env wins (developer override).
  *
- * These names match the conventions documented in
- * `extensions/copilot/docs/monitoring/agent_monitoring.md` so the same external
- * tooling and `OTEL_EXPORTER_OTLP_*` config recipes work unchanged.
+ * These names match the conventions documented in the CLI runtime's agent
+ * monitoring guide so the same external tooling and `OTEL_EXPORTER_OTLP_*`
+ * config recipes work unchanged.
  */
 export const AgentHostOTelEnvVars = Object.freeze({
 	Enabled: 'COPILOT_OTEL_ENABLED',

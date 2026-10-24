@@ -100,7 +100,6 @@ suite('Detect Changes', () => {
 			['.github/skills/unit-tests/SKILL.md', ['false', 'false', 'false']],
 			['cli/src/commands/tunnels.rs', ['false', 'false', 'false']],
 			['copilot_shim/src/main.rs', ['false', 'false', 'false']],
-			['extensions/copilot/src/extension/extension.ts', ['false', 'false', 'true']],
 			['extensions/git/src/repository.ts', ['false', 'true', 'true']],
 			['extensions/markdown-language-features/test-workspace/a.md', ['false', 'true', 'true']],
 			['extensions/theme-defaults/themes/dark_modern.json', ['true', 'true', 'true']],
@@ -121,11 +120,11 @@ suite('Detect Changes', () => {
 
 	test('every changed path must be one the tests cannot read', async () => {
 		assert.deepStrictEqual([
-			await detectCoreTests('extensions/copilot/package.json', 'README.md', 'cli/Cargo.toml'),
-			await detectCoreTests('extensions/copilot/package.json', 'extensions/git/package.json'),
-			await detectCoreTests('extensions/copilot/package.json', 'src/vs/base/common/async.ts'),
+			await detectCoreTests('README.md', 'cli/Cargo.toml'),
+			await detectCoreTests('README.md', 'extensions/git/package.json'),
+			await detectCoreTests('README.md', 'src/vs/base/common/async.ts'),
 		], [
-			['false', 'false', 'true'],
+			['false', 'false', 'false'],
 			['false', 'true', 'true'],
 			['true', 'true', 'true'],
 		]);

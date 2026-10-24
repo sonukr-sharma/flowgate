@@ -74,11 +74,8 @@ suite('changedFiles', () => {
 				modified('.eslint-ignore'),
 				modified('.eslint-allowed-bracket-notation-files'),
 				modified('.eslint-plugin-local/code-no-any-casts.ts'),
-				modified('extensions/copilot/.eslintplugin/index.ts'),
 				modified('package.json'),
 				deleted('package-lock.json'),
-				modified('extensions/copilot/package.json'),
-				modified('extensions/copilot/package-lock.json'),
 				modified('build/lib/i18n.resources.json'),
 				modified('src/vs/base/common/arrays.ts', 'build/filters.ts'),
 			].map(changes => getEslintScope(changes, noFiles)), [
@@ -87,11 +84,8 @@ suite('changedFiles', () => {
 				{ kind: 'full', reason: '.eslint-ignore changed' },
 				{ kind: 'full', reason: '.eslint-allowed-bracket-notation-files changed' },
 				{ kind: 'full', reason: '.eslint-plugin-local/code-no-any-casts.ts changed' },
-				{ kind: 'full', reason: 'extensions/copilot/.eslintplugin/index.ts changed' },
 				{ kind: 'full', reason: 'package.json changed' },
 				{ kind: 'full', reason: 'package-lock.json changed' },
-				{ kind: 'full', reason: 'extensions/copilot/package.json changed' },
-				{ kind: 'full', reason: 'extensions/copilot/package-lock.json changed' },
 				{ kind: 'full', reason: 'build/lib/i18n.resources.json changed' },
 				{ kind: 'full', reason: 'build/filters.ts changed' },
 			]);
@@ -153,13 +147,11 @@ suite('changedFiles', () => {
 				modified('build/hygiene.ts'),
 				modified('build/lib/stylelint/vscode-known-variables.json'),
 				modified('tsfmt.json'),
-				modified('extensions/copilot/tsfmt.json'),
 				deleted('package-lock.json'),
 			].map(changes => getHygieneScope(changes)), [
 				{ kind: 'full', reason: 'build/hygiene.ts changed' },
 				{ kind: 'full', reason: 'build/lib/stylelint/vscode-known-variables.json changed' },
 				{ kind: 'full', reason: 'tsfmt.json changed' },
-				{ kind: 'full', reason: 'extensions/copilot/tsfmt.json changed' },
 				{ kind: 'full', reason: 'package-lock.json changed' },
 			]);
 		});

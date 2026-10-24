@@ -19,12 +19,6 @@ outputs:
   windows:
     description: "'true' when the Windows job needs to run."
     value: ${{ steps.detect.outputs.windows }}
-  copilot-linux:
-    description: "'true' when the Copilot (Linux) job needs to run."
-    value: ${{ steps.detect.outputs.copilot-linux }}
-  copilot-windows:
-    description: "'true' when the Copilot (Windows) job needs to run."
-    value: ${{ steps.detect.outputs.copilot-windows }}
 
 runs:
   using: composite

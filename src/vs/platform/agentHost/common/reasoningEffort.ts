@@ -65,9 +65,9 @@ export function getReasoningEffortLabel(level: string): string {
  * label in the picker. Returns `undefined` for an unrecognized value so
  * callers can omit the description rather than show an empty string.
  *
- * Wording mirrors the canonical extension helper `getReasoningEffortDescription`
- * in `extensions/copilot/src/extension/conversation/common/languageModelAccess.ts`
- * so every provider surfaces the same descriptions.
+ * Wording mirrors the canonical chat extension helper
+ * `getReasoningEffortDescription` so every provider surfaces the same
+ * descriptions.
  */
 export function getReasoningEffortDescription(level: string): string | undefined {
 	switch (level) {

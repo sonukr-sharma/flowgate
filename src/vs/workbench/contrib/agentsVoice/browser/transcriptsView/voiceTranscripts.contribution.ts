@@ -189,7 +189,7 @@ registerAction2(ArchiveAllVoiceTranscriptsAction);
 registerAction2(DeleteAllVoiceTranscriptsAction);
 
 // --- Surface the action in the Chat view's ⋯ overflow menu, right alongside ---
-// --- "Show Chat Debug View" (contributed by extensions/copilot/package.json    ---
+// --- "Show Chat Debug View" (contributed by the chat extension's package.json ---
 // --- under view/title with when: view == workbench.panel.chat.view.copilot)    ---
 
 MenuRegistry.appendMenuItem(MenuId.ViewTitle, {

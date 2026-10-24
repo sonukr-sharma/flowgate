@@ -55,13 +55,8 @@ function calls(value: unknown): CheckpointParameters[] {
 	).map(record => record.parameters as CheckpointParameters);
 }
 
-function copilotCalls(os: 'darwin' | 'linux' | 'win32'): CheckpointParameters[] {
-	const steps = readTemplate('copilot/test-integration-steps.yml').steps;
-	return calls(steps.filter(step => Object.hasOwn(step, `\${{ if eq(parameters.OS, '${os}') }}`)));
-}
-
-function allCalls(testFile: string, os: 'darwin' | 'linux' | 'win32'): CheckpointParameters[] {
-	return [...calls(readTemplate(testFile)), ...copilotCalls(os)];
+function allCalls(testFile: string): CheckpointParameters[] {
+	return calls(readTemplate(testFile));
 }
 
 function selectedTestIds(testFile: string): { selectedId: string; testId: string }[] {
@@ -72,10 +67,7 @@ function selectedTestIds(testFile: string): { selectedId: string; testId: string
 			if (!selectedId) {
 				throw new Error(`Missing test ID in ${key}`);
 			}
-			return [
-				...calls(branch).map(call => ({ selectedId, testId: call.testId })),
-				...records(branch).filter(record => record.template === '../../copilot/test-integration-steps.yml@self').map(() => ({ selectedId, testId: 'copilot' })),
-			];
+			return calls(branch).map(call => ({ selectedId, testId: call.testId }));
 		})
 	);
 }
@@ -101,18 +93,11 @@ suite('Product test checkpoint templates', () => {
 				}
 			}
 		}
-		const copilot = readTemplate('copilot/test-integration-steps.yml').steps;
 		assert.deepStrictEqual({
 			users: [...new Set(users)],
-			unsupportedCopilotCalls: calls(copilot.filter(step =>
-				!Object.hasOwn(step, '${{ if eq(parameters.OS, \'darwin\') }}')
-				&& !Object.hasOwn(step, '${{ if eq(parameters.OS, \'linux\') }}')
-				&& !Object.hasOwn(step, '${{ if eq(parameters.OS, \'win32\') }}')
-			)).length,
 		}, {
 			users: [
 				'common/run-test-with-checkpoint.yml -> publish-test-checkpoint.yml',
-				'copilot/test-integration-steps.yml -> run-test-with-checkpoint.yml',
 				`${darwinTestFile} -> restore-test-checkpoints.yml`,
 				`${darwinTestFile} -> run-test-with-checkpoint.yml`,
 				`${linuxTestFile} -> restore-test-checkpoints.yml`,
@@ -120,7 +105,6 @@ suite('Product test checkpoint templates', () => {
 				`${windowsTestFile} -> restore-test-checkpoints.yml`,
 				`${windowsTestFile} -> run-test-with-checkpoint.yml`,
 			],
-			unsupportedCopilotCalls: 0,
 		});
 	});
 
@@ -192,25 +176,21 @@ suite('Product test checkpoint templates', () => {
 			'unit-electron', 'unit-node', 'unit-browser-chromium',
 			'integration-agent-host-e2e', 'integration-electron', 'integration-browser-firefox', 'integration-remote',
 			'smoke-electron', 'smoke-browser-chromium', 'smoke-remote',
-			'copilot-extension', 'copilot-completions-core', 'copilot-sanity',
 		];
 		const linuxExpected = [
 			'unit-electron', 'unit-node', 'unit-browser-chromium',
 			'integration-agent-host-e2e', 'integration-electron', 'integration-browser-chromium', 'integration-remote',
 			'smoke-electron', 'smoke-browser-chromium', 'smoke-remote',
-			'copilot-extension', 'copilot-completions-core', 'copilot-sanity',
 		];
 		const darwinExpected = [
 			'unit-electron', 'unit-node', 'unit-browser-webkit',
 			'integration-agent-host-e2e', 'integration-electron', 'integration-browser-webkit', 'integration-remote',
 			'smoke-electron', 'smoke-agents-pac-proxy', 'smoke-agents-kerberos-pac-proxy', 'smoke-browser-chromium', 'smoke-remote',
-			'copilot-extension', 'copilot-completions-core', 'copilot-sanity',
 		];
 		const allExpected = [
 			'unit-electron', 'unit-node', 'unit-browser-chromium', 'unit-browser-webkit',
 			'integration-agent-host-e2e', 'integration-electron', 'integration-browser-chromium', 'integration-browser-firefox', 'integration-browser-webkit', 'integration-remote',
 			'smoke-electron', 'smoke-agents-pac-proxy', 'smoke-agents-kerberos-pac-proxy', 'smoke-browser-chromium', 'smoke-remote',
-			'copilot-extension', 'copilot-completions-core', 'copilot-sanity',
 		];
 		const targets = [
 			{ file: windowsTestFile, os: 'win32' as const, expected: windowsExpected, agentOS: 'Windows_NT', arch: 'x64', target: 'win32-x64', stage: 'Windows', job: 'Windows_x64_Test' },
@@ -223,10 +203,9 @@ suite('Product test checkpoint templates', () => {
 				const steps = readTemplate(target.file).steps;
 				return {
 					file: target.file,
-					calls: allCalls(target.file, target.os).map(call => call.testId),
+					calls: allCalls(target.file).map(call => call.testId),
 					firstStep: steps[0],
 					restores: records(steps).filter(step => step.template?.toString().endsWith('/restore-test-checkpoints.yml@self')).length,
-					copilot: records(steps).find(step => step.template === '../../copilot/test-integration-steps.yml@self')?.parameters,
 				};
 			}),
 			publishedIds,
@@ -237,19 +216,16 @@ suite('Product test checkpoint templates', () => {
 				calls: windowsExpected,
 				firstStep: { template: '../../common/restore-test-checkpoints.yml@self' },
 				restores: 1,
-				copilot: { OS: 'win32' },
 			}, {
 				file: linuxTestFile,
 				calls: linuxExpected,
 				firstStep: { template: '../../common/restore-test-checkpoints.yml@self' },
 				restores: 1,
-				copilot: { OS: 'linux' },
 			}, {
 				file: darwinTestFile,
 				calls: darwinExpected,
 				firstStep: { template: '../../common/restore-test-checkpoints.yml@self' },
 				restores: 1,
-				copilot: { OS: 'darwin' },
 			}],
 			publishedIds: allExpected,
 			scriptIds: allExpected,
@@ -287,7 +263,6 @@ suite('Product test checkpoint templates', () => {
 	});
 
 	test('Windows x64 CI assigns every test ID to one job', () => {
-		const steps = readTemplate(windowsTestFile).steps;
 		const selectedIds = selectedTestIds(windowsTestFile);
 		const ci = readTemplate('win32/product-build-win32-ci.yml');
 		const job = records(ci).find(record => record.job === 'Windows${{ parameters.VSCODE_JOB_NAME }}');
@@ -314,11 +289,7 @@ suite('Product test checkpoint templates', () => {
 			};
 		});
 		const assignedIds = jobs.flatMap(job => job.ids).sort();
-		const copilotCheckpoints = copilotCalls('win32').map(call => call.testId);
-		const availableIds = [
-			...allCalls(windowsTestFile, 'win32').map(call => call.testId).filter(id => !copilotCheckpoints.includes(id)),
-			'copilot',
-		].sort();
+		const availableIds = allCalls(windowsTestFile).map(call => call.testId).sort();
 
 		assert.deepStrictEqual({
 			testIdsType: ci.parameters?.find(parameter => parameter.name === 'VSCODE_TEST_IDS')?.type,
@@ -336,12 +307,9 @@ suite('Product test checkpoint templates', () => {
 			productTestIds: productSteps.map(step => (step.parameters as Record<string, string>).VSCODE_TEST_IDS).filter(value => value !== undefined),
 			productTestJob: { dependsOn: productTestJob?.dependsOn, displayName: productTestJob?.displayName },
 			productJobsByPipeline,
-			copilotSetup: Object.keys(setup.steps.find(step => records(step).some(record => record.template === '../../copilot/pull-test-cache.yml@self')) ?? {}),
-			copilotTests: Object.keys(steps.find(step => records(step).some(record => record.template === '../../copilot/test-integration-steps.yml@self')) ?? {}),
 			agentHostSmoke: Object.keys(compileTemplate.steps.find(step => records(step).some(record => record.displayName === '🧪 Smoke test packaged Agent Host')) ?? {}),
 			selectedIds: selectedIds.map(selection => selection.selectedId).sort(),
 			selectionsMatchTests: selectedIds.every(selection => selection.selectedId === selection.testId),
-			copilotCheckpoints,
 			// Tests are only selected by test ID
 			testEnvironmentParameters: [compileTemplate, setup, readTemplate(windowsTestFile)].flatMap(template => template.parameters ?? [])
 				.map(parameter => parameter.name).filter(name => /^VSCODE_RUN_\w+_TESTS$/.test(name)),
@@ -350,7 +318,7 @@ suite('Product test checkpoint templates', () => {
 			jobDisplayName: '${{ parameters.VSCODE_JOB_DISPLAY_NAME }}',
 			displayNames: [
 				{ name: 'UnitElectron', displayName: 'Unit Tests (Electron)' },
-				{ name: 'Unit', displayName: 'Unit Tests (Node.js, Browser & Copilot)' },
+				{ name: 'Unit', displayName: 'Unit Tests (Node.js & Browser)' },
 				{ name: 'BrowserRemote', displayName: 'Browser & Remote Tests' },
 				{ name: 'Integration', displayName: 'Integration Tests (Electron)' },
 				{ name: 'AgentHostE2E', displayName: 'Agent Host E2E Tests (Electron)' },
@@ -374,12 +342,9 @@ suite('Product test checkpoint templates', () => {
 				runTests: ['${{ eq(parameters.VSCODE_STEP_ON_IT, false) }}', undefined],
 				jobs: jobs.map(job => ({ arch: 'x64', ...job })),
 			})),
-			copilotSetup: ['${{ if containsValue(parameters.VSCODE_TEST_IDS, \'copilot\') }}'],
-			copilotTests: ['${{ if containsValue(parameters.VSCODE_TEST_IDS, \'copilot\') }}'],
 			agentHostSmoke: ['${{ if and(eq(parameters.VSCODE_ARCH, \'x64\'), or(ne(parameters.VSCODE_CIBUILD, true), eq(length(parameters.VSCODE_TEST_IDS), 0), containsValue(parameters.VSCODE_TEST_IDS, \'smoke-electron\'))) }}'],
 			selectedIds: availableIds,
 			selectionsMatchTests: true,
-			copilotCheckpoints: ['copilot-extension', 'copilot-completions-core', 'copilot-sanity'],
 			testEnvironmentParameters: [],
 		});
 	});
@@ -429,11 +394,7 @@ suite('Product test checkpoint templates', () => {
 			const compileSteps = records(compileTemplate).filter(record => record.template === `product-build-${platform}-test.yml@self` || record.template === `product-build-${platform}-setup.yml@self`);
 			const jobsByPipeline = pipelineFiles.map(file => ciJobs(file, platform));
 			const jobs = jobsByPipeline[0];
-			const copilotCheckpoints = copilotCalls(platform).map(call => call.testId);
-			const availableIds = [
-				...allCalls(testFile, platform).map(call => call.testId).filter(id => !copilotCheckpoints.includes(id)),
-				'copilot',
-			].sort();
+			const availableIds = allCalls(testFile).map(call => call.testId).sort();
 			return {
 				platform,
 				jobName: job?.job,
@@ -454,8 +415,6 @@ suite('Product test checkpoint templates', () => {
 					key.includes('containsValue(parameters.VSCODE_TEST_IDS, \'smoke-electron\')')
 					&& key.includes('eq(length(parameters.VSCODE_TEST_IDS), 0)')
 					&& key.includes('ne(parameters.VSCODE_CIBUILD, true)'))),
-				copilotSetup: Object.keys(setup.steps.find(step => records(step).some(record => record.template === '../../copilot/pull-test-cache.yml@self')) ?? {}),
-				copilotTests: Object.keys(steps.find(step => records(step).some(record => record.template === '../../copilot/test-integration-steps.yml@self')) ?? {}),
 				remoteNode: Object.keys(steps.find(step => records(step).some(record => record.displayName === 'Download Node.js')) ?? {}),
 				productTestJob: { job: productTestJob?.job, dependsOn: productTestJob?.dependsOn, displayName: productTestJob?.displayName },
 				// The product build runs the same test jobs as CI
@@ -466,8 +425,7 @@ suite('Product test checkpoint templates', () => {
 					.map(parameter => parameter.name).filter(name => /^VSCODE_RUN_\w+_TESTS$/.test(name)),
 			};
 		});
-		const jobDisplayNames = ['Unit Tests (Electron)', 'Unit Tests (Node.js, Browser & Copilot)', 'Browser & Remote Tests', 'Integration Tests (Electron)', 'Agent Host E2E Tests (Electron)', 'Smoke Tests (Electron)'];
-		const copilotCondition = '${{ if containsValue(parameters.VSCODE_TEST_IDS, \'copilot\') }}';
+		const jobDisplayNames = ['Unit Tests (Electron)', 'Unit Tests (Node.js & Browser)', 'Browser & Remote Tests', 'Integration Tests (Electron)', 'Agent Host E2E Tests (Electron)', 'Smoke Tests (Electron)'];
 		const remoteNodeCondition = '${{ if or(containsValue(parameters.VSCODE_TEST_IDS, \'integration-remote\'), containsValue(parameters.VSCODE_TEST_IDS, \'smoke-remote\')) }}';
 		const runTests = '${{ eq(parameters.VSCODE_STEP_ON_IT, false) }}';
 		assert.deepStrictEqual(observed, [
@@ -487,8 +445,6 @@ suite('Product test checkpoint templates', () => {
 				selectedIds: observed[0].availableIds,
 				selectionsMatchTests: true,
 				agentHostSmokeFollowsTest: true,
-				copilotSetup: [copilotCondition],
-				copilotTests: [copilotCondition],
 				remoteNode: [remoteNodeCondition],
 				productTestJob: {
 					job: 'Linux_${{ parameters.VSCODE_ARCH }}_Test_${{ parameters.VSCODE_JOB_NAME }}',
@@ -516,8 +472,6 @@ suite('Product test checkpoint templates', () => {
 				selectedIds: observed[1].availableIds,
 				selectionsMatchTests: true,
 				agentHostSmokeFollowsTest: true,
-				copilotSetup: [copilotCondition],
-				copilotTests: [copilotCondition],
 				remoteNode: [remoteNodeCondition],
 				productTestJob: {
 					job: 'macOS_${{ parameters.VSCODE_ARCH }}_Test_${{ parameters.VSCODE_JOB_NAME }}',

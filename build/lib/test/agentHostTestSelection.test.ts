@@ -81,7 +81,7 @@ suite('Agent Host PR test selection', () => {
 			'package-lock.json',
 			'remote/package.json',
 			'remote/package-lock.json',
-			'extensions/copilot/package.json',
+			'extensions/git/package.json',
 			'.npmrc',
 			'.nvmrc',
 			'product.json',

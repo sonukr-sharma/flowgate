@@ -67,10 +67,10 @@ top-level folders of a user installation. The folder is separate from `bin`
 itself so that adding `copilot` to `PATH` never depends on adding `code`, and
 the reverse.
 
-- The Windows installer ([`copilot.iss`](../build/win32/copilot.iss)) adds the
-  folder to `PATH`, and can install Copilot CLI with the setup commands. The
-  folder also contains a POSIX `copilot` launcher, so that WSL, Git Bash, and
-  Cygwin shells get the command (see
+- The Windows installer no longer ships this folder: the Inno Setup include that
+  added it to `PATH` and could install Copilot CLI was removed with the Copilot
+  extension cleanup. The folder still contains a POSIX `copilot` launcher, so
+  that WSL, Git Bash, and Cygwin shells get the command (see
   [`copilot` in WSL, Git Bash, and Cygwin](#copilot-in-wsl-git-bash-and-cygwin)).
 - The Copilot extension computes the same path and adds the folder to the
   `PATH` of integrated terminals, unless `chat.copilotCliCommand.enabled` is
@@ -1380,7 +1380,7 @@ The work is complete only when:
 
 - Terminal integration:
   [`copilotCLITerminalIntegration.ts`](../extensions/copilot/src/extension/chatSessions/vscode-node/copilotCLITerminalIntegration.ts)
-- Windows installer integration: [`copilot.iss`](../build/win32/copilot.iss)
+- Windows installer integration: removed with the Copilot extension cleanup
 - Existing Rust CLI package: [`cli/`](../cli/)
 - Shim compilation and quality checks:
   [`copilot-shim-compile.yml`](../build/azure-pipelines/copilot-shim/copilot-shim-compile.yml),

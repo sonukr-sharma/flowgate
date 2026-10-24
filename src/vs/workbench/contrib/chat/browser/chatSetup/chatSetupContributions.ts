@@ -239,12 +239,15 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 					title: ChatSetupTriggerAction.CHAT_SETUP_ACTION_LABEL,
 					category: CHAT_CATEGORY,
 					f1: true,
-					precondition: ContextKeyExpr.or(
-						ChatContextKeys.Setup.hidden,
-						ChatContextKeys.Setup.disabledInWorkspace,
-						ChatContextKeys.Setup.untrusted,
-						ChatContextKeys.Setup.completed.negate(),
-						ChatContextKeys.Entitlement.canSignUp
+					precondition: ContextKeyExpr.and(
+						ContextKeyExpr.not(`config.${ChatAIDisabledSettingId}`),
+						ContextKeyExpr.or(
+							ChatContextKeys.Setup.hidden,
+							ChatContextKeys.Setup.disabledInWorkspace,
+							ChatContextKeys.Setup.untrusted,
+							ChatContextKeys.Setup.completed.negate(),
+							ChatContextKeys.Entitlement.canSignUp
+						)
 					)
 				});
 			}

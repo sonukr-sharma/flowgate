@@ -171,8 +171,8 @@ suite('Detect missing caches', () => {
 			detect(key => existing.filter(cache => cache.key.startsWith(key)).concat({ key: `${key}-other`, version: 'other' })),
 			detect(() => { throw new Error('Not available'); }),
 		]), [
-			{ 'compile': 'false', 'linux': 'false', 'macOS': 'true', 'windows': 'true', 'copilot-linux': 'false', 'copilot-windows': 'false' },
-			{ 'compile': 'true', 'linux': 'true', 'macOS': 'true', 'windows': 'true', 'copilot-linux': 'true', 'copilot-windows': 'true' },
+			{ 'compile': 'false', 'linux': 'false', 'macOS': 'true', 'windows': 'true' },
+			{ 'compile': 'true', 'linux': 'true', 'macOS': 'true', 'windows': 'true' },
 		]);
 	});
 });

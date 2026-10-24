@@ -65,32 +65,6 @@ const rules: readonly IChangeRule[] = [
 			'.github/workflows/pr-linux-cli-test.yml',
 		],
 	},
-	{
-		// The Copilot tests run against a downloaded VS Code build and chat-lib is extracted from the extension;
-		// neither uses the core sources in the pull request.
-		output: 'copilot',
-		paths: [
-			'extensions/copilot/',
-			'.github/actions/test-chat-lib/',
-			// Type checking includes the VS Code API typings.
-			'src/vscode-dts/',
-			'src/typings/thenable.d.ts',
-			// Linting uses the root ESLint configuration and rules.
-			'eslint.config.js',
-			'.eslint-ignore',
-			'.eslint-plugin-local/',
-			// The jobs install the root dependencies and restore cached node_modules.
-			'package.json',
-			'package-lock.json',
-			'.npmrc',
-			'.github/actions/restore-node-modules/',
-			'.github/workflows/node_modules_cache/',
-			'build/azure-pipelines/common/computeNodeModulesCacheKey.ts',
-			'build/azure-pipelines/common/cacheKeys.ts',
-			'build/npm/dirs.ts',
-			'build/azure-pipelines/win32/exec.ps1',
-		],
-	},
 ];
 
 /**
@@ -132,9 +106,9 @@ const coreTestRules: readonly ICoreTestRule[] = [
 		canSkip: path => isDocumentation(path) || isRustCrate(path) || isExtensionNotReadByUnitTests(path),
 	},
 	{
-		// The browser integration and smoke tests do not load the Copilot extension.
+		// The browser integration and smoke tests do not load the built-in extensions.
 		output: 'browser-integration',
-		canSkip: path => isDocumentation(path) || isRustCrate(path) || path.startsWith('extensions/copilot/'),
+		canSkip: path => isDocumentation(path) || isRustCrate(path),
 	},
 	{
 		// The Electron integration, Electron smoke and remote tests exercise the built-in extensions.
