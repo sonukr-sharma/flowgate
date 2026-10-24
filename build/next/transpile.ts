@@ -3,11 +3,15 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { randomUUID } from 'crypto';
 import * as esbuild from 'esbuild';
 import * as fs from 'fs';
 import * as path from 'path';
 
 const UTF8_BOM = Buffer.from([0xef, 0xbb, 0xbf]);
+
+/** Windows can transiently refuse to replace a file that another process has open. */
+const RENAME_RETRY_CODES = new Set(['EPERM', 'EBUSY', 'EACCES', 'ENOTEMPTY']);
 
 /** Keeps build I/O comfortably below the Windows CRT's 8192 file-handle limit. */
 export const MAX_CONCURRENT_FILE_OPERATIONS = 256;
@@ -33,21 +37,68 @@ export async function transpileFile(srcPath: string, destPath: string): Promise<
 		sourcefile: srcPath,
 	});
 
-	await fs.promises.mkdir(path.dirname(destPath), { recursive: true });
-	await fs.promises.writeFile(destPath, adjustEsmUrl(result.code));
+	await replaceAtomically(destPath, temporaryPath => fs.promises.writeFile(temporaryPath, adjustEsmUrl(result.code)));
 }
 
 export async function copyFile(srcPath: string, destPath: string): Promise<void> {
-	await fs.promises.mkdir(path.dirname(destPath), { recursive: true });
-
 	if (needsBomAdded(srcPath)) {
 		const content = await fs.promises.readFile(srcPath);
 		if (content[0] !== 0xef || content[1] !== 0xbb || content[2] !== 0xbf) {
-			await fs.promises.writeFile(destPath, Buffer.concat([UTF8_BOM, content]));
+			await replaceAtomically(destPath, temporaryPath => fs.promises.writeFile(temporaryPath, Buffer.concat([UTF8_BOM, content])));
 			return;
 		}
 	}
-	await fs.promises.copyFile(srcPath, destPath);
+	await replaceAtomically(destPath, temporaryPath => fs.promises.copyFile(srcPath, temporaryPath));
+}
+
+/**
+ * Writes via a sibling temp file and renames it into place, so a concurrently
+ * starting Electron instance never observes a truncated or half-written module.
+ * A plain `writeFile` truncates the destination first, which surfaces as
+ * "does not provide an export named ..." when the import races the write.
+ */
+async function replaceAtomically(destPath: string, write: (temporaryPath: string) => Promise<void>): Promise<void> {
+	await fs.promises.mkdir(path.dirname(destPath), { recursive: true });
+
+	const temporaryPath = `${destPath}.${process.pid}.${randomUUID()}.tmp`;
+	try {
+		await write(temporaryPath);
+	} catch (error) {
+		await fs.promises.rm(temporaryPath, { force: true });
+		throw error;
+	}
+
+	if (await renameWithRetry(temporaryPath, destPath)) {
+		return;
+	}
+
+	// Windows refuses to replace a destination that another process holds open
+	// without FILE_SHARE_DELETE. Fall back to an in-place write so the build
+	// still succeeds; this is no worse than the previous non-atomic behavior.
+	try {
+		await fs.promises.copyFile(temporaryPath, destPath);
+	} finally {
+		await fs.promises.rm(temporaryPath, { force: true });
+	}
+}
+
+/** Returns `false` when the destination stayed locked for the whole retry budget. */
+async function renameWithRetry(from: string, to: string): Promise<boolean> {
+	for (let attempt = 0; ; attempt++) {
+		try {
+			await fs.promises.rename(from, to);
+			return true;
+		} catch (error) {
+			const code = (error as NodeJS.ErrnoException).code;
+			if (attempt >= 9 || !code || !RENAME_RETRY_CODES.has(code)) {
+				if (code && RENAME_RETRY_CODES.has(code)) {
+					return false;
+				}
+				throw error;
+			}
+			await new Promise(resolve => setTimeout(resolve, Math.min(10 * 2 ** attempt, 100)));
+		}
+	}
 }
 
 export async function mapWithConcurrency<T, R>(items: readonly T[], concurrency: number, task: (item: T, index: number) => Promise<R>): Promise<R[]> {
